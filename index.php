@@ -1,31 +1,16 @@
 <?php
-	include_once "facebook-php-sdk/src/facebook.php";
-	$app_id = '471564966195723';
-	$application_secret = '186ec6af8b5212008ca7188601731ebc';
-?>
-
-<?php
-/**
- * Copyright 2011 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain
- * a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
-// Create our Application instance (replace this with your appId and secret).
-$facebook = new Facebook(array(
-  'appId'  => $app_id,
-  'secret' => $application_secret,
-));
+	include_once "config.php";
+	if(isset($_POST['friends']) && isset($_POST['owner'])) {
+		$u = $_POST['owner'];
+		$friends=array();
+		foreach($_POST['friends'] as $f)array_push($friends, "$f");
+		//print_r($friends);
+		$friends= implode(",", $friends);
+		$err = mysql_query("INSERT INTO profile (id, owner, friends)
+VALUES (NULL, '$u','$friends')");
+$id=mysql_insert_id();
+//echo $err;
+	}
 
 // Get User ID
 $user = $facebook->getUser();
@@ -52,100 +37,45 @@ if ($user) {
   $logoutUrl = $facebook->getLogoutUrl();
 } else {
   $loginUrl = $facebook->getLoginUrl();
+  echo "<a href='".$loginUrl."'>Login To Facebook</a><br />";
 }
-$friendId =array("717046379", "100000291930370");
-// This call will always work since we are fetching public data.
-
 ?>
-<html lang="en" xmlns:fb="http://www.facebook.com/2008/fbml">
+<html  lang="en" xmlns:fb="http://www.facebook.com/2008/fbml">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=1024" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <title>impress.js | presentation tool based on the power of CSS3 transforms and transitions in modern browsers | by Bartek Szopka @bartaz</title>
-    
-    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
-    <meta name="author" content="Bartek Szopka" />
+<title>Memories Alive: Share Memories Forever</title>
+<link href="css/main.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="chosen/chosen.css" />
 
-    <link href="http://fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
-
-    <link href="css/impress-demo.css" rel="stylesheet" />
-    
-    <link rel="shortcut icon" href="favicon.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
-
-<body class="impress-not-supported">
-
-<!--
-    For example this fallback message is only visible when there is `impress-not-supported` class on body.
--->
-<div class="fallback-message">
-    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
-    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
-</div>
+<body>
 <div id="header">
-	<h1>Memories Alive</h1>
-	<p>Between<?php
-	$fql= "SELECT name,pic_square FROM user WHERE uid=me()";
-	foreach($friendId as $fid){
-		$fql=$fql." OR uid=".$fid;		
-	}
-	$friends = $facebook->api(array(
-								'method'=>'fql.query',
-								'query'=>$fql));
-	foreach($friends as $fs){
-		echo $fs['name'].","; 
-	}
-	?></p>
+<h1>Memories Alive</h1>
+<p>Welcome <?php $name = $facebook->api('me'); echo $name['name'];
+?></p>
 </div>
-<div id="impress">
-    <?php if ($user) { ?>
-      <pre>
-        <?php //print htmlspecialchars(print_r($user_profile, true)) ?>
-      </pre>
-	  <?php 
-			$data_x=-1500;
-			$data_y=-1500;
-			$data_rotate_z=0;
-			$fql = "SELECT caption, src_big, like_info FROM photo WHERE pid IN (SELECT pid FROM photo_tag WHERE subject =me())";
-			foreach($friendId as $fid){
-				//echo "Friend Id: ".$fid."\n";
-				$fql=$fql."AND pid IN (SELECT pid FROM photo_tag WHERE subject=".$fid.")";
-			}
-			$photos = $facebook->api(array(
-                                   'method' => 'fql.query',
-                                   'query' => $fql,
-                                 ));
-			//print_r($photos);
-			foreach($photos as $pic):
-			?>
-			<div class="step" data-x="<?php echo $data_x;?>" data-z="<?php echo $data_y;?>" data-rotate-z="<?php echo $data_rotate_z;?>">
-			<p><strong><?php echo $pic['caption'];?></strong> <br/>
-			<img src="<?php echo $pic['src_big']; ?>" /></p>
-			</div>
-	<?php
-		$data_x+=1500;
-		$data_y+=1500;
-		$data_rotate_z+=15;
-		endforeach;	
-	  ?>
-    <?php } else { ?>
-      <a href="<?php echo $loginUrl;?>">Login to Facebook</a>
-    <?php } ?>
-	</div>
-    <div id="fb-root"></div>
-    
-<div class="hint">
-    <p>Use a spacebar or arrow keys to navigate</p>
-</div>
-<script>
-if ("ontouchstart" in document.documentElement) { 
-    document.querySelector(".hint").innerHTML = "<p>Tap on the left or right to navigate</p>";
-}
-</script>
-
-<script src="js/impress.js"></script>
-<script>impress().init();</script>
+<form action="" method="POST">
+<input type="hidden" name="owner" value="<?php echo $user;?>" />
+<h2>Multiple Select</h2>
+    <div class="side-by-side clearfix">
+      <div>
+        <em>Select Friends</em>        
+        <select data-placeholder="Choose a Country..." class="chzn-select" multiple style="width:350px;" tabindex="4" name="friends[]">
+          <option value=""></option>
+		  <?php
+			$friends = $facebook->api("/me/friends");
+	foreach($friends['data'] as $fs){
+		echo "<option value='".$fs['id']."'>".$fs['name']."</option>,";
+		}
+		  ?>
+        </select>
+      </div>
+    </div>
+	<input type="submit" value="Create Show" />
+	</form>
+	<?php if(isset($id)) echo "<a href='slideshow.php?id=$id'>/slideshow.php?id=$id</a><br />"
+	?>
 </body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js" type="text/javascript"></script>
+<script src="chosen/chosen.jquery.js" type="text/javascript"></script>
+<script type="text/javascript"> $(".chzn-select").chosen(); $(".chzn-select-deselect").chosen({allow_single_deselect:true}); </script>
 </html>
